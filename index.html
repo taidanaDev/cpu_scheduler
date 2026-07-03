@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CPU Scheduler 98</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="loading-screen">
+  <div>Starting Python engine (Pyodide)... please wait</div>
+  <div class="hint" style="color:#ddd; margin-top:6px;">First load can take ~10-20 seconds</div>
+</div>
+
+<div id="desktop">
+
+  <!-- ============ Window 1: Process Input ============ -->
+  <div class="win raised" id="win-input" style="top:20px; left:20px; width:430px;">
+    <div class="titlebar">
+      <div class="title-left"><span class="win-icon">🗂</span><span>Process Input</span></div>
+      <div class="titlebar-btns">
+        <div class="tb-btn" data-action="min">_</div>
+        <div class="tb-btn" data-action="max">□</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <table class="retro-table" id="process-table">
+        <thead>
+          <tr><th>PID</th><th>Arrival</th><th>Burst</th><th class="prio-col">Priority</th><th></th></tr>
+        </thead>
+        <tbody id="process-tbody"></tbody>
+      </table>
+      <div style="margin-top:6px; display:flex; gap:6px;">
+        <button class="retro-btn" id="btn-add-row">+ Add Process</button>
+        <button class="retro-btn" id="btn-random">Randomize</button>
+      </div>
+
+      <fieldset class="retro-fieldset">
+        <legend>Algorithm</legend>
+        <label class="radio-label"><input type="radio" name="algo" value="fcfs" checked> FCFS (First Come First Served)</label>
+        <label class="radio-label"><input type="radio" name="algo" value="sjf"> SJF (Shortest Job First, non-preemptive)</label>
+        <label class="radio-label"><input type="radio" name="algo" value="srtf"> SRTF (Shortest Remaining Time First)</label>
+        <label class="radio-label"><input type="radio" name="algo" value="priority_npp"> Priority — Non-Preemptive</label>
+        <label class="radio-label"><input type="radio" name="algo" value="priority_pp"> Priority — Preemptive</label>
+        <label class="radio-label"><input type="radio" name="algo" value="round_robin"> Round Robin</label>
+        <div id="quantum-row" style="margin-top:6px; display:none;">
+          Time Quantum: <input type="number" id="quantum-input" value="2" min="1" style="width:50px;">
+        </div>
+        <div class="hint">Priority convention: lower number = higher priority</div>
+      </fieldset>
+
+      <button class="retro-btn" id="btn-run" style="width:100%; font-weight:bold; padding:6px;">▶ RUN</button>
+    </div>
+  </div>
+
+  <!-- ============ Window 2: Gantt Chart ============ -->
+  <div class="win raised" id="win-gantt" style="top:20px; left:470px; width:560px;">
+    <div class="titlebar">
+      <div class="title-left"><span class="win-icon">📊</span><span>Gantt Chart</span></div>
+      <div class="titlebar-btns">
+        <div class="tb-btn" data-action="min">_</div>
+        <div class="tb-btn" data-action="max">□</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <div id="gantt-canvas-wrap">
+        <canvas id="gantt-canvas" width="1400" height="110"></canvas>
+      </div>
+      <div class="gantt-controls">
+        <button class="retro-btn" id="btn-step-back">⏮</button>
+        <button class="retro-btn" id="btn-play">▶</button>
+        <button class="retro-btn" id="btn-pause">⏸</button>
+        <button class="retro-btn" id="btn-step-fwd">⏭</button>
+        <span class="hint">Speed:</span>
+        <input type="range" id="speed-slider" min="1" max="10" value="5">
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Window 3: System Monitor ============ -->
+  <div class="win raised" id="win-monitor" style="top:220px; left:20px; width:430px;">
+    <div class="titlebar">
+      <div class="title-left"><span class="win-icon">🖥</span><span>System Monitor</span></div>
+      <div class="titlebar-btns">
+        <div class="tb-btn" data-action="min">_</div>
+        <div class="tb-btn" data-action="max">□</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="monitor-row">
+        <div class="monitor-box"><h4>READY QUEUE</h4><div id="box-ready"></div></div>
+        <div class="monitor-box"><h4>RUNNING (CPU)</h4><div id="box-running"></div></div>
+        <div class="monitor-box"><h4>COMPLETED</h4><div id="box-completed"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Window 4: Decision Log ============ -->
+  <div class="win raised" id="win-log" style="top:270px; left:470px; width:560px;">
+    <div class="titlebar">
+      <div class="title-left"><span class="win-icon">📝</span><span>Decision Log - Notepad</span></div>
+      <div class="titlebar-btns">
+        <div class="tb-btn" data-action="min">_</div>
+        <div class="tb-btn" data-action="max">□</div>
+      </div>
+    </div>
+    <div class="win-body" style="padding:0;">
+      <div id="log-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ Window 5: Results ============ -->
+  <div class="win raised" id="win-results" style="top:460px; left:20px; width:430px;">
+    <div class="titlebar">
+      <div class="title-left"><span class="win-icon">📋</span><span>Results</span></div>
+      <div class="titlebar-btns">
+        <div class="tb-btn" data-action="min">_</div>
+        <div class="tb-btn" data-action="max">□</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <table class="retro-table" id="results-table">
+        <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>WT</th><th>TAT</th><th>RT</th></tr></thead>
+        <tbody id="results-tbody"></tbody>
+      </table>
+      <div id="results-summary"></div>
+    </div>
+  </div>
+
+  <!-- ============ Window 6: Compare Algorithms ============ -->
+  <div class="win raised" id="win-compare" style="top:490px; left:470px; width:560px;">
+    <div class="titlebar">
+      <div class="title-left"><span class="win-icon">📈</span><span>Compare Algorithms</span></div>
+      <div class="titlebar-btns">
+        <div class="tb-btn" data-action="min">_</div>
+        <div class="tb-btn" data-action="max">□</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <button class="retro-btn" id="btn-compare-all">Run All Algorithms on This Process Set</button>
+      <div id="compare-canvas-wrap" style="margin-top:6px;">
+        <canvas id="compare-canvas" width="530" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="taskbar">
+  <div id="start-btn" class="raised">🪟 Start</div>
+  <div class="taskbar-sep"></div>
+  <div class="taskbar-item active" data-win="win-input">Process Input</div>
+  <div class="taskbar-item active" data-win="win-gantt">Gantt Chart</div>
+  <div class="taskbar-item active" data-win="win-monitor">System Monitor</div>
+  <div class="taskbar-item active" data-win="win-log">Decision Log</div>
+  <div class="taskbar-item active" data-win="win-results">Results</div>
+  <div class="taskbar-item active" data-win="win-compare">Compare</div>
+  <div id="clock"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

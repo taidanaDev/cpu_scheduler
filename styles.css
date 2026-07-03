@@ -1,0 +1,329 @@
+/* ===================== Retro Windows 98/2000 theme ===================== */
+:root {
+  --gray: #c0c0c0;
+  --gray-dark: #808080;
+  --gray-darker: #404040;
+  --white: #ffffff;
+  --blue-dark: #000080;
+  --blue-light: #1084d0;
+  --black: #000000;
+  --desktop-teal: #008080;
+  --taskbar-h: 34px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Tahoma', 'MS Sans Serif', Geneva, sans-serif;
+  font-size: 12px;
+  color: var(--black);
+  overflow: hidden;
+}
+
+#desktop {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - var(--taskbar-h));
+  background: var(--desktop-teal);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05) 0, transparent 50%);
+  overflow: auto;
+}
+
+/* ---------- bevel helpers ---------- */
+.raised {
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid var(--gray-darker);
+  border-bottom: 2px solid var(--gray-darker);
+}
+.sunken {
+  border-top: 2px solid var(--gray-darker);
+  border-left: 2px solid var(--gray-darker);
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+}
+
+/* ---------- window chrome ---------- */
+.win {
+  position: absolute;
+  background: var(--gray);
+  min-width: 260px;
+  box-shadow: 3px 3px 8px rgba(0,0,0,0.4);
+}
+.win.raised { }
+
+.titlebar {
+  height: 20px;
+  background: linear-gradient(90deg, var(--blue-dark), var(--blue-light));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 3px 2px 6px;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: move;
+  user-select: none;
+}
+.titlebar .title-left { display:flex; align-items:center; gap:5px; }
+.titlebar .win-icon { font-size: 12px; }
+
+.titlebar-btns { display: flex; gap: 2px; }
+.tb-btn {
+  width: 16px;
+  height: 14px;
+  background: var(--gray);
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  border-right: 1px solid var(--gray-darker);
+  border-bottom: 1px solid var(--gray-darker);
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  color: #000;
+  cursor: pointer;
+  font-weight: bold;
+}
+.tb-btn:active {
+  border-top: 1px solid var(--gray-darker);
+  border-left: 1px solid var(--gray-darker);
+  border-right: 1px solid #fff;
+  border-bottom: 1px solid #fff;
+}
+
+.win-body {
+  padding: 8px;
+  overflow: auto;
+}
+.win.minimized .win-body { display: none; }
+.win.minimized { height: 20px !important; overflow: hidden; }
+
+/* ---------- form controls ---------- */
+button.retro-btn {
+  background: var(--gray);
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+  border-right: 2px solid var(--gray-darker);
+  border-bottom: 2px solid var(--gray-darker);
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+button.retro-btn:active {
+  border-top: 2px solid var(--gray-darker);
+  border-left: 2px solid var(--gray-darker);
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+}
+button.retro-btn:disabled {
+  color: var(--gray-dark);
+  cursor: default;
+}
+
+input[type="text"], input[type="number"], select {
+  background: #fff;
+  border-top: 2px solid var(--gray-darker);
+  border-left: 2px solid var(--gray-darker);
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  padding: 2px 4px;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+table.retro-table {
+  border-collapse: collapse;
+  width: 100%;
+  background: #fff;
+}
+table.retro-table th, table.retro-table td {
+  border: 1px solid var(--gray-dark);
+  padding: 3px 6px;
+  font-size: 11px;
+  text-align: center;
+}
+table.retro-table th {
+  background: var(--gray);
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+}
+table.retro-table td input {
+  width: 50px;
+  text-align: center;
+}
+table.retro-table tr.del-row {
+  cursor: pointer;
+  color: #a00;
+  font-weight: bold;
+}
+
+fieldset.retro-fieldset {
+  border: 2px groove var(--gray);
+  margin: 6px 0;
+  padding: 6px 8px;
+}
+fieldset.retro-fieldset legend {
+  font-weight: bold;
+  padding: 0 4px;
+}
+
+label.radio-label {
+  display: block;
+  margin: 2px 0;
+  cursor: pointer;
+}
+
+/* ---------- taskbar ---------- */
+#taskbar {
+  height: var(--taskbar-h);
+  background: var(--gray);
+  border-top: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  gap: 4px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+#start-btn {
+  font-weight: bold;
+  font-size: 13px;
+  padding: 4px 10px;
+}
+.taskbar-sep {
+  width: 2px;
+  height: 24px;
+  border-left: 1px solid var(--gray-darker);
+  border-right: 1px solid #fff;
+}
+.taskbar-item {
+  background: var(--gray);
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+  border-right: 2px solid var(--gray-darker);
+  border-bottom: 2px solid var(--gray-darker);
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.taskbar-item.active {
+  border-top: 2px solid var(--gray-darker);
+  border-left: 2px solid var(--gray-darker);
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+}
+#clock {
+  margin-left: auto;
+  border: 1px solid var(--gray-darker);
+  padding: 3px 8px;
+  background: var(--gray);
+}
+
+/* ---------- Gantt chart ---------- */
+#gantt-canvas-wrap {
+  background: #fff;
+  border-top: 2px solid var(--gray-darker);
+  border-left: 2px solid var(--gray-darker);
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  overflow-x: auto;
+}
+.gantt-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.gantt-controls input[type="range"] {
+  flex: 1;
+}
+
+/* ---------- System monitor (queue) ---------- */
+.monitor-row { display: flex; gap: 8px; }
+.monitor-box {
+  flex: 1;
+  background: #fff;
+  min-height: 90px;
+  padding: 4px;
+}
+.monitor-box h4 {
+  margin: 0 0 4px 0;
+  font-size: 11px;
+  background: var(--gray-dark);
+  color: #fff;
+  padding: 2px 4px;
+}
+.chip {
+  display: inline-block;
+  padding: 3px 7px;
+  margin: 2px;
+  color: #fff;
+  font-weight: bold;
+  font-size: 11px;
+  border-top: 1px solid rgba(255,255,255,0.6);
+  border-left: 1px solid rgba(255,255,255,0.6);
+  border-right: 1px solid rgba(0,0,0,0.4);
+  border-bottom: 1px solid rgba(0,0,0,0.4);
+}
+
+/* ---------- decision log ---------- */
+#log-body {
+  background: #fff;
+  height: 160px;
+  overflow-y: scroll;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  padding: 4px;
+  white-space: pre-wrap;
+}
+
+/* ---------- results ---------- */
+#results-summary {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* ---------- compare ---------- */
+#compare-canvas-wrap {
+  background: #fff;
+  border-top: 2px solid var(--gray-darker);
+  border-left: 2px solid var(--gray-darker);
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+}
+
+/* scrollbar retro-ish */
+::-webkit-scrollbar { width: 16px; height: 16px; }
+::-webkit-scrollbar-track { background: var(--gray); }
+::-webkit-scrollbar-thumb { background: var(--gray); border: 1px solid var(--gray-darker); }
+
+.hint {
+  font-size: 10px;
+  color: var(--gray-darker);
+  font-style: italic;
+}
+
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--blue-dark);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  z-index: 9999;
+}
