@@ -70,7 +70,7 @@ html, body {
   user-select: none;
 }
 .titlebar .title-left { display:flex; align-items:center; gap:5px; }
-.titlebar .win-icon { font-size: 12px; }
+.titlebar .win-icon { font-size: 12px; width: 14px; height: 14px; object-fit: contain; }
 
 .titlebar-btns { display: flex; gap: 2px; }
 .tb-btn {
@@ -94,13 +94,29 @@ html, body {
   border-right: 1px solid #fff;
   border-bottom: 1px solid #fff;
 }
+.tb-btn[data-action="close"] {
+  background: #c00000;
+  color: #ffffff;
+  border-top: 1px solid #ffb0b0;
+  border-left: 1px solid #ffb0b0;
+  border-right: 1px solid #400000;
+  border-bottom: 1px solid #400000;
+}
+
+.tb-btn[data-action="close"]:active {
+  border-top: 1px solid #400000;
+  border-left: 1px solid #400000;
+  border-right: 1px solid #ffb0b0;
+  border-bottom: 1px solid #ffb0b0;
+}
 
 .win-body {
   padding: 8px;
   overflow: auto;
 }
-.win.minimized .win-body { display: none; }
-.win.minimized { height: 20px !important; overflow: hidden; }
+.win.minimized {
+  display: none;
+}
 
 /* ---------- form controls ---------- */
 button.retro-btn {
@@ -223,6 +239,25 @@ label.radio-label {
   border-right: 2px solid #fff;
   border-bottom: 2px solid #fff;
 }
+#taskbar-items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.taskbar-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.taskbar-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
 #clock {
   margin-left: auto;
   border: 1px solid var(--gray-darker);
@@ -315,6 +350,50 @@ label.radio-label {
   font-style: italic;
 }
 
+/* ---------- desktop icons ---------- */
+.desktop-icons {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  z-index: 1;
+}
+.desktop-icon {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px;
+  border: 1px dotted transparent;
+}
+.desktop-icon.selected {
+  background: rgba(0, 0, 128, 0.25);
+  border: 1px dotted #fff;
+}
+.desktop-icon .icon-glyph {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
+}
+.desktop-icon .icon-label {
+  color: #fff;
+  font-size: 11px;
+  text-align: center;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+  margin-top: 4px;
+  padding: 0 2px;
+}
+.desktop-icon.selected .icon-label {
+  background: var(--blue-dark);
+}
+
+/* windows start closed; opened windows get .open added by JS */
+.win.closed { display: none; }
+
 #loading-screen {
   position: fixed;
   inset: 0;
@@ -326,4 +405,58 @@ label.radio-label {
   justify-content: center;
   font-size: 14px;
   z-index: 9999;
+}
+.desktop-icons {
+  position: absolute;
+  top: 12px;
+  left: 10px;
+  display: grid;
+  grid-template-columns: repeat(1, 82px);
+  gap: 12px;
+  z-index: 1;
+}
+
+.desktop-icon {
+  width: 78px;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: pointer;
+  padding: 4px 2px;
+  border: 1px dotted transparent;
+}
+
+.desktop-icon:hover {
+  background: rgba(0, 0, 128, 0.18);
+}
+
+.desktop-icon.selected {
+  background: rgba(0, 0, 128, 0.35);
+  border: 1px dotted #ffffff;
+}
+
+.desktop-icon .icon-glyph {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  image-rendering: auto;
+  filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.5));
+}
+
+.desktop-icon .icon-label {
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.15;
+  text-align: center;
+  text-shadow: 1px 1px 1px #000000;
+  margin-top: 4px;
+  padding: 1px 3px;
+  max-width: 76px;
+  word-break: break-word;
+}
+
+.desktop-icon.selected .icon-label {
+  background: var(--blue-dark);
 }

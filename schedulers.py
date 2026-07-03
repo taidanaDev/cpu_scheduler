@@ -1,5 +1,5 @@
 """
-CPU Scheduling Algorithms — pure logic, no UI code.
+CPU Scheduling Algorithms
 
 Every scheduler function takes a list of process dicts:
     {"pid": "P1", "arrival": 0, "burst": 5, "priority": 2}
@@ -9,7 +9,7 @@ Each scheduler returns a dict:
     {
         "timeline": [ {"pid": "P1", "start": 0, "end": 4}, ... ],   # includes "IDLE" slices
         "log": [ {"time": 0, "message": "..."}, ... ],
-        "metrics": { "P1": {"waiting": 0, "turnaround": 4, "completion": 4,
+        "metrics": { "P1": {"waiting": 0, "turnaround": 4, "end": 4,
                              "response": 0, "arrival": 0, "burst": 4}, ... },
         "averages": {"waiting": .., "turnaround": .., "response": ..,
                      "cpu_utilization": .., "context_switches": ..}
@@ -26,6 +26,16 @@ def _pid_key(p):
     digits = "".join(ch for ch in pid if ch.isdigit())
     return (int(digits) if digits else 0, pid)
 
+def _priority_sort_key(p, priority_convention="lower"):
+    """
+    Priority convention:
+    - "lower"  means lower number = higher priority
+    - "higher" means higher number = higher priority
+    """
+    if priority_convention == "higher":
+        return (-p["priority"], p["arrival"], _pid_key(p))
+
+    return (p["priority"], p["arrival"], _pid_key(p))
 
 def _init_metrics(processes):
     metrics = {}
@@ -33,10 +43,10 @@ def _init_metrics(processes):
         metrics[p["pid"]] = {
             "arrival": p["arrival"],
             "burst": p["burst"],
+            "start": None,
             "waiting": 0,
             "turnaround": 0,
-            "completion": 0,
-            "response": None,
+            "end": 0,
         }
     return metrics
 
@@ -44,18 +54,10 @@ def _init_metrics(processes):
 def _finalize(processes, timeline, log, metrics):
     total_time = timeline[-1]["end"] if timeline else 0
     busy_time = sum(s["end"] - s["start"] for s in timeline if s["pid"] != "IDLE")
-    context_switches = 0
-    last_pid = None
-    for s in timeline:
-        if s["pid"] != "IDLE" and s["pid"] != last_pid:
-            if last_pid is not None:
-                context_switches += 1
-            last_pid = s["pid"]
 
     n = len(processes)
     avg_wait = sum(m["waiting"] for m in metrics.values()) / n if n else 0
     avg_turn = sum(m["turnaround"] for m in metrics.values()) / n if n else 0
-    avg_resp = sum(m["response"] for m in metrics.values()) / n if n else 0
     utilization = (busy_time / total_time * 100) if total_time else 0
 
     return {
@@ -65,9 +67,7 @@ def _finalize(processes, timeline, log, metrics):
         "averages": {
             "waiting": round(avg_wait, 2),
             "turnaround": round(avg_turn, 2),
-            "response": round(avg_resp, 2),
             "cpu_utilization": round(utilization, 2),
-            "context_switches": context_switches,
         },
     }
 
@@ -80,9 +80,7 @@ def _add_idle_if_needed(timeline, log, current_time, next_time):
 
 
 # ---------------------------------------------------------------------------
-# Non-preemptive family: FCFS, SJF, Priority (NPP)
-# All three share the same shape: repeatedly pick one process to run to
-# completion from whatever has arrived so far.
+# Non-preemptive Algorithms: FCFS, SJF, Priority (NPP)
 # ---------------------------------------------------------------------------
 
 def _run_non_preemptive(processes, select_fn, describe_fn):
@@ -106,8 +104,8 @@ def _run_non_preemptive(processes, select_fn, describe_fn):
 
         log.append({"time": start, "message": describe_fn(chosen, ready, start)})
 
-        metrics[chosen["pid"]]["response"] = start - chosen["arrival"]
-        metrics[chosen["pid"]]["completion"] = end
+        metrics[chosen["pid"]]["start"] = start
+        metrics[chosen["pid"]]["end"] = end
         metrics[chosen["pid"]]["turnaround"] = end - chosen["arrival"]
         metrics[chosen["pid"]]["waiting"] = start - chosen["arrival"]
 
@@ -140,19 +138,25 @@ def sjf(processes, **kwargs):
     return _run_non_preemptive(processes, select, describe)
 
 
-def priority_npp(processes, **kwargs):
+def priority_npp(processes, priority_convention="lower", **kwargs):
     def select(ready):
-        return min(ready, key=lambda p: (p["priority"], p["arrival"], _pid_key(p)))
+        return min(ready, key=lambda p: _priority_sort_key(p, priority_convention))
 
     def describe(chosen, ready, t):
-        return f"{chosen['pid']} has highest priority (value={chosen['priority']}, lower=higher) among ready → dispatch"
+        if priority_convention == "higher":
+            rule = "higher number = higher priority"
+        else:
+            rule = "lower number = higher priority"
+
+        return (
+            f"{chosen['pid']} has highest priority "
+            f"(value={chosen['priority']}, rule: {rule}) among ready → dispatch"
+        )
 
     return _run_non_preemptive(processes, select, describe)
 
-
 # ---------------------------------------------------------------------------
-# Preemptive family: SRTF, Priority (PP), Round Robin
-# All three use a time-stepped simulation loop, advancing one unit at a time.
+# Preemptive Algorithms: SRTF, Priority (PP), Round Robin
 # ---------------------------------------------------------------------------
 
 def srtf(processes, **kwargs):
@@ -178,8 +182,8 @@ def srtf(processes, **kwargs):
 
         chosen = min(ready, key=lambda p: (p["remaining"], p["arrival"], _pid_key(p)))
 
-        if metrics[chosen["pid"]]["response"] is None:
-            metrics[chosen["pid"]]["response"] = time - chosen["arrival"]
+        if metrics[chosen["pid"]]["start"] is None:
+            metrics[chosen["pid"]]["start"] = time
 
         if chosen["pid"] != running_pid:
             if running_pid is not None:
@@ -201,7 +205,7 @@ def srtf(processes, **kwargs):
         if chosen["remaining"] == 0:
             timeline.append({"pid": chosen["pid"], "start": slice_start, "end": time})
             running_pid = None
-            metrics[chosen["pid"]]["completion"] = time
+            metrics[chosen["pid"]]["end"] = time
             metrics[chosen["pid"]]["turnaround"] = time - chosen["arrival"]
             metrics[chosen["pid"]]["waiting"] = metrics[chosen["pid"]]["turnaround"] - chosen["burst"]
             log.append({"time": time, "message": f"{chosen['pid']} completes"})
@@ -211,7 +215,7 @@ def srtf(processes, **kwargs):
     return _finalize(processes, timeline, log, metrics)
 
 
-def priority_pp(processes, **kwargs):
+def priority_pp(processes, priority_convention="lower", **kwargs):
     procs = {p["pid"]: dict(p, remaining=p["burst"]) for p in processes}
     metrics = _init_metrics(processes)
     timeline = []
@@ -232,24 +236,38 @@ def priority_pp(processes, **kwargs):
             time = _add_idle_if_needed(timeline, log, time, next_arrival)
             continue
 
-        chosen = min(ready, key=lambda p: (p["priority"], p["arrival"], _pid_key(p)))
+        chosen = min(ready, key=lambda p: _priority_sort_key(p, priority_convention))
 
-        if metrics[chosen["pid"]]["response"] is None:
-            metrics[chosen["pid"]]["response"] = time - chosen["arrival"]
+        if metrics[chosen["pid"]]["start"] is None:
+            metrics[chosen["pid"]]["start"] = time
 
         if chosen["pid"] != running_pid:
-            if running_pid is not None:
-                timeline.append({"pid": running_pid, "start": slice_start, "end": time})
-                prev_priority = procs[running_pid]["priority"]
-                log.append({
-                    "time": time,
-                    "message": f"{chosen['pid']} (priority={chosen['priority']}) higher than {running_pid} "
-                               f"(priority={prev_priority}) → PREEMPT {running_pid}, dispatch {chosen['pid']}",
-                })
-            else:
-                log.append({"time": time, "message": f"{chosen['pid']} has highest priority ({chosen['priority']}) → dispatch"})
-            running_pid = chosen["pid"]
-            slice_start = time
+            rule = "higher number = higher priority" if priority_convention == "higher" else "lower number = higher priority"
+
+        if running_pid is not None:
+            timeline.append({"pid": running_pid, "start": slice_start, "end": time})
+            prev_priority = procs[running_pid]["priority"]
+
+            log.append({
+                "time": time,
+                "message": (
+                    f"{chosen['pid']} priority={chosen['priority']} is higher than "
+                    f"{running_pid} priority={prev_priority} "
+                    f"({rule}) → PREEMPT {running_pid}, dispatch {chosen['pid']}"
+                )
+            })
+
+        else:
+            log.append({
+                "time": time,
+                "message": (
+                    f"{chosen['pid']} has highest priority "
+                    f"({chosen['priority']}, rule: {rule}) → dispatch"
+                )
+            })
+
+        running_pid = chosen["pid"]
+        slice_start = time
 
         chosen["remaining"] -= 1
         time += 1
@@ -257,7 +275,7 @@ def priority_pp(processes, **kwargs):
         if chosen["remaining"] == 0:
             timeline.append({"pid": chosen["pid"], "start": slice_start, "end": time})
             running_pid = None
-            metrics[chosen["pid"]]["completion"] = time
+            metrics[chosen["pid"]]["end"] = time
             metrics[chosen["pid"]]["turnaround"] = time - chosen["arrival"]
             metrics[chosen["pid"]]["waiting"] = metrics[chosen["pid"]]["turnaround"] - chosen["burst"]
             log.append({"time": time, "message": f"{chosen['pid']} completes"})
@@ -287,7 +305,9 @@ def round_robin(processes, quantum=2, **kwargs):
         arrival_idx += 1
 
     if not queue and arrival_idx < n:
-        time = arrivals_sorted[arrival_idx]["arrival"]
+        next_arrival = arrivals_sorted[arrival_idx]["arrival"]
+        time = _add_idle_if_needed(timeline, log, time, next_arrival)
+
         while arrival_idx < n and arrivals_sorted[arrival_idx]["arrival"] <= time:
             queue.append(arrivals_sorted[arrival_idx]["pid"])
             arrival_idx += 1
@@ -308,8 +328,8 @@ def round_robin(processes, quantum=2, **kwargs):
         run_for = min(quantum, p["remaining"])
         end = start + run_for
 
-        if metrics[pid]["response"] is None:
-            metrics[pid]["response"] = start - p["arrival"]
+        if metrics[pid]["start"] is None:
+            metrics[pid]["start"] = start
 
         timeline.append({"pid": pid, "start": start, "end": end})
         log.append({
@@ -332,13 +352,12 @@ def round_robin(processes, quantum=2, **kwargs):
             queue.append(pid)
             log.append({"time": time, "message": f"{pid} quantum expired, {p['remaining']} remaining → re-enqueued"})
         else:
-            metrics[pid]["completion"] = time
+            metrics[pid]["end"] = time
             metrics[pid]["turnaround"] = time - p["arrival"]
             metrics[pid]["waiting"] = metrics[pid]["turnaround"] - p["burst"]
             log.append({"time": time, "message": f"{pid} completes"})
             completed += 1
 
-    timeline = _merge_adjacent(timeline)
     return _finalize(processes, timeline, log, metrics)
 
 
@@ -365,10 +384,20 @@ ALGORITHMS = {
 }
 
 
-def run_scheduler(algorithm, processes, quantum=None):
+def run_scheduler(algorithm, processes, quantum=None, priority_convention="lower"):
     fn = ALGORITHMS[algorithm]
-    return fn(processes, quantum=quantum)
+    return fn(
+        processes,
+        quantum=quantum,
+        priority_convention=priority_convention
+    )
 
-
-def run_all(processes, quantum=2):
-    return {name: fn(processes, quantum=quantum) for name, fn in ALGORITHMS.items()}
+def run_all(processes, quantum=2, priority_convention="lower"):
+    return {
+        name: fn(
+            processes,
+            quantum=quantum,
+            priority_convention=priority_convention
+        )
+        for name, fn in ALGORITHMS.items()
+    }

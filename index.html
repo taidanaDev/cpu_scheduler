@@ -14,13 +14,54 @@
 
 <div id="desktop">
 
+  <!-- ============ Desktop Icons ============ -->
+<div class="desktop-icons">
+
+  <div class="desktop-icon" data-open="all">
+    <img class="icon-glyph" src="assets/computer_explorer_cool-0.png" alt="Computer">
+    <div class="icon-label">Computer</div>
+  </div>
+
+  <div class="desktop-icon" data-open="win-input">
+    <img class="icon-glyph" src="assets/directory_admin_tools-4.png" alt="Process Input">
+    <div class="icon-label">Process Input</div>
+  </div>
+
+  <div class="desktop-icon" data-open="win-gantt">
+    <img class="icon-glyph" src="assets/cd_drive-3.png" alt="Gantt Chart">
+    <div class="icon-label">Gantt Chart</div>
+  </div>
+
+  <div class="desktop-icon" data-open="win-monitor">
+    <img class="icon-glyph" src="assets/directory_network_conn-4.png" alt="System Monitor">
+    <div class="icon-label">System Monitor</div>
+  </div>
+
+  <div class="desktop-icon" data-open="win-log">
+    <img class="icon-glyph" src="assets/notepad-5.png" alt="Decision Log">
+    <div class="icon-label">Decision Log</div>
+  </div>
+
+  <div class="desktop-icon" data-open="win-results">
+    <img class="icon-glyph" src="assets/directory_closed_cool-3.png" alt="Results">
+    <div class="icon-label">Results</div>
+  </div>
+
+  <div class="desktop-icon" data-open="win-compare">
+    <img class="icon-glyph" src="assets/directory_folder_options-4.png" alt="Compare Algorithms">
+    <div class="icon-label">Compare</div>
+  </div>
+
+</div>
+
   <!-- ============ Window 1: Process Input ============ -->
-  <div class="win raised" id="win-input" style="top:20px; left:20px; width:430px;">
+  <div class="win raised closed" id="win-input" style="top:20px; left:20px; width:430px;">
     <div class="titlebar">
-      <div class="title-left"><span class="win-icon">🗂</span><span>Process Input</span></div>
+      <div class="title-left"><img class="win-icon" src="assets/directory_admin_tools-4.png" alt=""><span>Process Input</span></div>
       <div class="titlebar-btns">
         <div class="tb-btn" data-action="min">_</div>
         <div class="tb-btn" data-action="max">□</div>
+        <div class="tb-btn" data-action="close">X</div>
       </div>
     </div>
     <div class="win-body">
@@ -46,7 +87,23 @@
         <div id="quantum-row" style="margin-top:6px; display:none;">
           Time Quantum: <input type="number" id="quantum-input" value="2" min="1" style="width:50px;">
         </div>
-        <div class="hint">Priority convention: lower number = higher priority</div>
+        <div id="priority-convention-row" style="margin-top:6px;">
+          <b>Priority Convention:</b><br>
+
+          <label class="radio-label">
+            <input type="radio" name="priorityConvention" value="lower" checked>
+            Lower number = higher priority
+          </label>
+
+          <label class="radio-label">
+            <input type="radio" name="priorityConvention" value="higher">
+            Higher number = higher priority
+          </label>
+        </div>
+
+        <div class="hint">
+          The selected priority convention will apply to Priority Non-Preemptive and Priority Preemptive only.
+        </div>
       </fieldset>
 
       <button class="retro-btn" id="btn-run" style="width:100%; font-weight:bold; padding:6px;">▶ RUN</button>
@@ -54,12 +111,13 @@
   </div>
 
   <!-- ============ Window 2: Gantt Chart ============ -->
-  <div class="win raised" id="win-gantt" style="top:20px; left:470px; width:560px;">
+  <div class="win raised closed" id="win-gantt" style="top:20px; left:470px; width:560px;">
     <div class="titlebar">
-      <div class="title-left"><span class="win-icon">📊</span><span>Gantt Chart</span></div>
+      <div class="title-left"><img class="win-icon" src="assets/cd_drive-3.png" alt=""><span>Gantt Chart</span></div>
       <div class="titlebar-btns">
         <div class="tb-btn" data-action="min">_</div>
         <div class="tb-btn" data-action="max">□</div>
+        <div class="tb-btn" data-action="close">X</div>
       </div>
     </div>
     <div class="win-body">
@@ -78,12 +136,13 @@
   </div>
 
   <!-- ============ Window 3: System Monitor ============ -->
-  <div class="win raised" id="win-monitor" style="top:220px; left:20px; width:430px;">
+  <div class="win raised closed" id="win-monitor" style="top:220px; left:20px; width:430px;">
     <div class="titlebar">
-      <div class="title-left"><span class="win-icon">🖥</span><span>System Monitor</span></div>
+      <div class="title-left"><img class="win-icon" src="assets/directory_network_conn-4.png" alt=""><span>System Monitor</span></div>
       <div class="titlebar-btns">
         <div class="tb-btn" data-action="min">_</div>
         <div class="tb-btn" data-action="max">□</div>
+        <div class="tb-btn" data-action="close">X</div>
       </div>
     </div>
     <div class="win-body">
@@ -96,12 +155,13 @@
   </div>
 
   <!-- ============ Window 4: Decision Log ============ -->
-  <div class="win raised" id="win-log" style="top:270px; left:470px; width:560px;">
+  <div class="win raised closed" id="win-log" style="top:270px; left:470px; width:560px;">
     <div class="titlebar">
-      <div class="title-left"><span class="win-icon">📝</span><span>Decision Log - Notepad</span></div>
+      <div class="title-left"><img class="win-icon" src="assets/notepad-5.png" alt=""><span>Decision Log - Notepad</span></div>
       <div class="titlebar-btns">
         <div class="tb-btn" data-action="min">_</div>
         <div class="tb-btn" data-action="max">□</div>
+        <div class="tb-btn" data-action="close">X</div>
       </div>
     </div>
     <div class="win-body" style="padding:0;">
@@ -110,17 +170,28 @@
   </div>
 
   <!-- ============ Window 5: Results ============ -->
-  <div class="win raised" id="win-results" style="top:460px; left:20px; width:430px;">
+  <div class="win raised closed" id="win-results" style="top:460px; left:20px; width:430px;">
     <div class="titlebar">
-      <div class="title-left"><span class="win-icon">📋</span><span>Results</span></div>
+      <div class="title-left"><img class="win-icon" src="assets/directory_closed_cool-3.png" alt=""><span>Results</span></div>
       <div class="titlebar-btns">
         <div class="tb-btn" data-action="min">_</div>
         <div class="tb-btn" data-action="max">□</div>
+        <div class="tb-btn" data-action="close">X</div>
       </div>
     </div>
     <div class="win-body">
       <table class="retro-table" id="results-table">
-        <thead><tr><th>PID</th><th>AT</th><th>BT</th><th>CT</th><th>WT</th><th>TAT</th><th>RT</th></tr></thead>
+      <thead>
+        <tr>
+          <th>PID</th>
+          <th>AT</th>
+          <th>BT</th>
+          <th>ST</th>
+          <th>ET</th>
+          <th>WT</th>
+          <th>TAT</th>
+        </tr>
+      </thead>
         <tbody id="results-tbody"></tbody>
       </table>
       <div id="results-summary"></div>
@@ -128,12 +199,13 @@
   </div>
 
   <!-- ============ Window 6: Compare Algorithms ============ -->
-  <div class="win raised" id="win-compare" style="top:490px; left:470px; width:560px;">
+  <div class="win raised closed" id="win-compare" style="top:490px; left:470px; width:560px;">
     <div class="titlebar">
-      <div class="title-left"><span class="win-icon">📈</span><span>Compare Algorithms</span></div>
+      <div class="title-left"><img class="win-icon" src="assets/directory_folder_options-4.png" alt=""><span>Compare Algorithms</span></div>
       <div class="titlebar-btns">
         <div class="tb-btn" data-action="min">_</div>
         <div class="tb-btn" data-action="max">□</div>
+        <div class="tb-btn" data-action="close">X</div>
       </div>
     </div>
     <div class="win-body">
@@ -149,12 +221,7 @@
 <div id="taskbar">
   <div id="start-btn" class="raised">🪟 Start</div>
   <div class="taskbar-sep"></div>
-  <div class="taskbar-item active" data-win="win-input">Process Input</div>
-  <div class="taskbar-item active" data-win="win-gantt">Gantt Chart</div>
-  <div class="taskbar-item active" data-win="win-monitor">System Monitor</div>
-  <div class="taskbar-item active" data-win="win-log">Decision Log</div>
-  <div class="taskbar-item active" data-win="win-results">Results</div>
-  <div class="taskbar-item active" data-win="win-compare">Compare</div>
+  <div id="taskbar-items"></div>
   <div id="clock"></div>
 </div>
 

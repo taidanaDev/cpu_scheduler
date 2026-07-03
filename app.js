@@ -15,57 +15,238 @@ let currentProcesses = [];
 let pidColors = {};
 
 // ---------------------------------------------------------------------
-// 1. Window manager: drag, minimize, maximize(toggle), taskbar focus
+// 1. Window manager: open/close, drag, minimize, maximize, dynamic taskbar
 // ---------------------------------------------------------------------
+const WINDOW_TITLES = {
+  "win-input": "Process Input",
+  "win-gantt": "Gantt Chart",
+  "win-monitor": "System Monitor",
+  "win-log": "Decision Log",
+  "win-results": "Results",
+  "win-compare": "Compare Algorithms",
+};
+
+const WINDOW_ICONS = {
+  "win-input": "assets/directory_admin_tools-4.png",
+  "win-gantt": "assets/cd_drive-3.png",
+  "win-monitor": "assets/directory_network_conn-4.png",
+  "win-log": "assets/notepad-5.png",
+  "win-results": "assets/directory_closed_cool-3.png",
+  "win-compare": "assets/directory_folder_options-4.png",
+};
+
+const ALL_WINDOW_IDS = Object.keys(WINDOW_TITLES);
+
+const ORGANIZED_LAYOUT = {
+  "win-input":   { top: 18,  left: 110, width: 430 },
+  "win-log":     { top: 18,  left: 560, width: 560 },
+  "win-results": { top: 18,  left: 1140, width: 330 },
+
+  "win-gantt":   { top: 235, left: 560, width: 560 },
+  "win-monitor": { top: 455, left: 110, width: 430 },
+  "win-compare": { top: 455, left: 560, width: 560 },
+};
+
+function setWindowRect(id, rect) {
+  const win = document.getElementById(id);
+  if (!win || !rect) return;
+
+  win.classList.remove("win-maxed");
+
+  win.style.top = rect.top + "px";
+  win.style.left = rect.left + "px";
+  win.style.width = rect.width + "px";
+  win.style.height = "";
+}
+
+function openWindow(id, organized = false) {
+  const win = document.getElementById(id);
+  if (!win) return;
+
+  if (organized && ORGANIZED_LAYOUT[id]) {
+    setWindowRect(id, ORGANIZED_LAYOUT[id]);
+  }
+
+  win.classList.remove("closed", "minimized");
+  bringToFront(win);
+  refreshTaskbar();
+}
+
+function openAllWindowsOrganized() {
+  ALL_WINDOW_IDS.forEach((id) => {
+    setWindowRect(id, ORGANIZED_LAYOUT[id]);
+    openWindow(id);
+  });
+}
+
+function closeWindow(id) {
+  const win = document.getElementById(id);
+  if (!win) return;
+
+  // This hides the window only. It does not delete or reset your data.
+  win.classList.add("closed");
+  win.classList.remove("minimized", "win-maxed");
+
+  refreshTaskbar();
+}
+
+function minimizeWindow(id) {
+  const win = document.getElementById(id);
+  if (!win) return;
+
+  // Real Windows 98 style: whole window disappears,
+  // then user restores it from the taskbar.
+  win.classList.add("minimized");
+  refreshTaskbar();
+}
+
+function refreshTaskbar() {
+  const container = document.getElementById("taskbar-items");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  ALL_WINDOW_IDS.forEach((id) => {
+    const win = document.getElementById(id);
+    if (!win || win.classList.contains("closed")) return;
+
+    const item = document.createElement("div");
+    item.className = "taskbar-item";
+
+    if (!win.classList.contains("minimized")) {
+      item.classList.add("active");
+    }
+
+    item.dataset.win = id;
+
+    item.innerHTML = `
+      <img src="${WINDOW_ICONS[id]}" class="taskbar-icon" alt="">
+      <span>${WINDOW_TITLES[id]}</span>
+    `;
+
+    item.addEventListener("click", () => {
+      win.classList.remove("minimized");
+      bringToFront(win);
+      refreshTaskbar();
+    });
+
+    container.appendChild(item);
+  });
+}
+
 function initWindowManager() {
   document.querySelectorAll(".win").forEach((win) => {
     const titlebar = win.querySelector(".titlebar");
-    let offsetX, offsetY, dragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+    let dragging = false;
 
-    titlebar.addEventListener("mousedown", (e) => {
-      if (e.target.classList.contains("tb-btn")) return;
-      dragging = true;
-      offsetX = e.clientX - win.offsetLeft;
-      offsetY = e.clientY - win.offsetTop;
-      bringToFront(win);
-    });
+    if (titlebar) {
+      titlebar.addEventListener("mousedown", (e) => {
+        if (e.target.classList.contains("tb-btn")) return;
+
+        dragging = true;
+        offsetX = e.clientX - win.offsetLeft;
+        offsetY = e.clientY - win.offsetTop;
+        bringToFront(win);
+      });
+    }
+
     document.addEventListener("mousemove", (e) => {
       if (!dragging) return;
-      win.style.left = Math.max(0, e.clientX - offsetX) + "px";
-      win.style.top = Math.max(0, e.clientY - offsetY) + "px";
-    });
-    document.addEventListener("mouseup", () => (dragging = false));
 
-    win.addEventListener("mousedown", () => bringToFront(win));
+      const desktop = document.getElementById("desktop");
+      const maxLeft = desktop.clientWidth - 80;
+      const maxTop = desktop.clientHeight - 30;
+
+      win.style.left = Math.min(Math.max(0, e.clientX - offsetX), maxLeft) + "px";
+      win.style.top = Math.min(Math.max(0, e.clientY - offsetY), maxTop) + "px";
+    });
+
+    document.addEventListener("mouseup", () => {
+      dragging = false;
+    });
+
+    win.addEventListener("mousedown", () => {
+      bringToFront(win);
+    });
 
     win.querySelectorAll(".tb-btn").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
+
         const action = btn.dataset.action;
+
         if (action === "min") {
-          win.classList.toggle("minimized");
-        } else if (action === "max") {
-          win.classList.toggle("win-maxed");
-          if (win.classList.contains("win-maxed")) {
-            win.dataset.prevStyle = win.getAttribute("style");
-            win.style.top = "0px";
-            win.style.left = "0px";
-            win.style.width = "98vw";
+          minimizeWindow(win.id);
+        }
+
+        if (action === "max") {
+          if (!win.classList.contains("win-maxed")) {
+            win.dataset.prevTop = win.style.top;
+            win.dataset.prevLeft = win.style.left;
+            win.dataset.prevWidth = win.style.width;
+            win.dataset.prevHeight = win.style.height;
+
+            win.classList.add("win-maxed");
+            win.style.top = "8px";
+            win.style.left = "8px";
+            win.style.width = "calc(100vw - 16px)";
+            win.style.height = "calc(100vh - var(--taskbar-h) - 16px)";
           } else {
-            win.setAttribute("style", win.dataset.prevStyle || "");
+            win.classList.remove("win-maxed");
+            win.style.top = win.dataset.prevTop || "";
+            win.style.left = win.dataset.prevLeft || "";
+            win.style.width = win.dataset.prevWidth || "";
+            win.style.height = win.dataset.prevHeight || "";
           }
+
+          bringToFront(win);
+        }
+
+        if (action === "close") {
+          closeWindow(win.id);
         }
       });
     });
   });
 
-  document.querySelectorAll(".taskbar-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      const win = document.getElementById(item.dataset.win);
-      win.classList.remove("minimized");
-      bringToFront(win);
+  // Desktop icons: one click opens the assigned window.
+  document.querySelectorAll(".desktop-icon").forEach((icon) => {
+    icon.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      document.querySelectorAll(".desktop-icon").forEach((i) => {
+        i.classList.remove("selected");
+      });
+
+      icon.classList.add("selected");
+
+      const target = icon.dataset.open;
+
+      if (target === "all") {
+        openAllWindowsOrganized();
+      } else {
+        openWindow(target, true);
+      }
     });
   });
+
+  document.getElementById("desktop").addEventListener("click", (e) => {
+    if (e.target.id === "desktop") {
+      document.querySelectorAll(".desktop-icon").forEach((i) => {
+        i.classList.remove("selected");
+      });
+    }
+  });
+
+  // Important: desktop starts with icons only.
+  ALL_WINDOW_IDS.forEach((id) => {
+    const win = document.getElementById(id);
+    if (win) win.classList.add("closed");
+  });
+
+  refreshTaskbar();
 }
 
 let zTop = 10;
@@ -139,7 +320,13 @@ document.getElementById("btn-random").addEventListener("click", () => {
 document.querySelectorAll('input[name="algo"]').forEach((r) => {
   r.addEventListener("change", () => {
     const algo = document.querySelector('input[name="algo"]:checked').value;
-    document.getElementById("quantum-row").style.display = algo === "round_robin" ? "block" : "none";
+
+    document.getElementById("quantum-row").style.display =
+      algo === "round_robin" ? "block" : "none";
+
+    document.getElementById("priority-convention-row").style.display =
+      algo.startsWith("priority") ? "block" : "none";
+
     document.querySelectorAll(".prio-col").forEach((el) => {
       el.style.opacity = algo.startsWith("priority") ? "1" : "0.4";
     });
@@ -158,28 +345,37 @@ async function initPyodide() {
 import json
 import schedulers
 
-def run_scheduler_json(algorithm, processes_json, quantum):
+def run_scheduler_json(algorithm, processes_json, quantum, priority_convention):
     processes = json.loads(processes_json)
-    result = schedulers.run_scheduler(algorithm, processes, quantum=quantum)
+    result = schedulers.run_scheduler(
+        algorithm,
+        processes,
+        quantum=quantum,
+        priority_convention=priority_convention
+    )
     return json.dumps(result)
 
-def run_all_json(processes_json, quantum):
+def run_all_json(processes_json, quantum, priority_convention):
     processes = json.loads(processes_json)
-    result = schedulers.run_all(processes, quantum=quantum)
+    result = schedulers.run_all(
+        processes,
+        quantum=quantum,
+        priority_convention=priority_convention
+    )
     return json.dumps(result)
 `);
   document.getElementById("loading-screen").style.display = "none";
 }
 
-function runSchedulerPy(algorithm, processes, quantum) {
+function runSchedulerPy(algorithm, processes, quantum, priorityConvention) {
   const fn = pyodide.globals.get("run_scheduler_json");
-  const jsonStr = fn(algorithm, JSON.stringify(processes), quantum);
+  const jsonStr = fn(algorithm, JSON.stringify(processes), quantum, priorityConvention);
   return JSON.parse(jsonStr);
 }
 
-function runAllPy(processes, quantum) {
+function runAllPy(processes, quantum, priorityConvention) {
   const fn = pyodide.globals.get("run_all_json");
-  const jsonStr = fn(JSON.stringify(processes), quantum);
+  const jsonStr = fn(JSON.stringify(processes), quantum, priorityConvention);
   return JSON.parse(jsonStr);
 }
 
@@ -194,12 +390,13 @@ document.getElementById("btn-run").addEventListener("click", () => {
   }
   const algo = document.querySelector('input[name="algo"]:checked').value;
   const quantum = parseInt(document.getElementById("quantum-input").value || "2", 10);
+  const priorityConvention = document.querySelector('input[name="priorityConvention"]:checked').value;
 
   assignColors(processes);
   currentProcesses = processes;
 
   try {
-    currentResult = runSchedulerPy(algo, processes, quantum);
+    currentResult = runSchedulerPy(algo, processes, quantum, priorityConvention);
   } catch (err) {
     alert("Error running scheduler: " + err);
     console.error(err);
@@ -209,6 +406,8 @@ document.getElementById("btn-run").addEventListener("click", () => {
   renderResultsTable(currentResult, processes);
   setupGanttAnimation(currentResult);
   resetMonitorAndLog();
+
+  ["win-gantt", "win-monitor", "win-log", "win-results"].forEach((id) => openWindow(id));
 });
 
 // ---------------------------------------------------------------------
@@ -374,16 +573,22 @@ function renderResultsTable(result, processes) {
   processes.forEach((p) => {
     const m = result.metrics[p.pid];
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${p.pid}</td><td>${m.arrival}</td><td>${m.burst}</td><td>${m.completion}</td><td>${m.waiting}</td><td>${m.turnaround}</td><td>${m.response}</td>`;
+    tr.innerHTML = `
+      <td>${p.pid}</td>
+      <td>${m.arrival}</td>
+      <td>${m.burst}</td>
+      <td>${m.start}</td>
+      <td>${m.end}</td>
+      <td>${m.waiting}</td>
+      <td>${m.turnaround}</td>
+    `;
     tbody.appendChild(tr);
   });
   const a = result.averages;
   document.getElementById("results-summary").innerHTML = `
     Avg Waiting Time: <b>${a.waiting}</b> &nbsp;|&nbsp;
     Avg Turnaround Time: <b>${a.turnaround}</b> &nbsp;|&nbsp;
-    Avg Response Time: <b>${a.response}</b><br>
     CPU Utilization: <b>${a.cpu_utilization}%</b> &nbsp;|&nbsp;
-    Context Switches: <b>${a.context_switches}</b>
   `;
 }
 
@@ -398,8 +603,10 @@ document.getElementById("btn-compare-all").addEventListener("click", () => {
   }
   assignColors(processes);
   const quantum = parseInt(document.getElementById("quantum-input").value || "2", 10);
-  const all = runAllPy(processes, quantum);
+  const priorityConvention = document.querySelector('input[name="priorityConvention"]:checked').value;
+  const all = runAllPy(processes, quantum, priorityConvention);
   drawCompareChart(all);
+  openWindow("win-compare");
 });
 
 function drawCompareChart(allResults) {
@@ -461,5 +668,6 @@ window.addEventListener("DOMContentLoaded", () => {
   addProcessRow(1, 3, 1);
   addProcessRow(2, 8, 4);
   addProcessRow(3, 6, 2);
+  document.getElementById("priority-convention-row").style.display = "none";
   initPyodide();
 });
