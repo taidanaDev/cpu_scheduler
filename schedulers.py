@@ -1,27 +1,7 @@
-"""
-CPU Scheduling Algorithms
-
-Every scheduler function takes a list of process dicts:
-    {"pid": "P1", "arrival": 0, "burst": 5, "priority": 2}
-and a tie-break rule of "lowest pid wins ties" throughout.
-
-Each scheduler returns a dict:
-    {
-        "timeline": [ {"pid": "P1", "start": 0, "end": 4}, ... ],   # includes "IDLE" slices
-        "log": [ {"time": 0, "message": "..."}, ... ],
-        "metrics": { "P1": {"waiting": 0, "turnaround": 4, "end": 4,
-                             "response": 0, "arrival": 0, "burst": 4}, ... },
-        "averages": {"waiting": .., "turnaround": .., "response": ..,
-                     "cpu_utilization": .., "context_switches": ..}
-    }
-
-Priority convention used throughout: LOWER priority number = HIGHER priority
-(this is the common textbook convention; it is stated in the UI log too).
-"""
-
+#CPU Scheduling Algorithms
 
 def _pid_key(p):
-    """Sort helper: numeric part of PID if possible, else the string itself."""
+    # Sorts by PID number, fallback to string
     pid = p["pid"]
     digits = "".join(ch for ch in pid if ch.isdigit())
     return (int(digits) if digits else 0, pid)
@@ -52,13 +32,9 @@ def _init_metrics(processes):
 
 
 def _finalize(processes, timeline, log, metrics):
-    total_time = timeline[-1]["end"] if timeline else 0
-    busy_time = sum(s["end"] - s["start"] for s in timeline if s["pid"] != "IDLE")
-
     n = len(processes)
     avg_wait = sum(m["waiting"] for m in metrics.values()) / n if n else 0
     avg_turn = sum(m["turnaround"] for m in metrics.values()) / n if n else 0
-    utilization = (busy_time / total_time * 100) if total_time else 0
 
     return {
         "timeline": timeline,
@@ -67,7 +43,6 @@ def _finalize(processes, timeline, log, metrics):
         "averages": {
             "waiting": round(avg_wait, 2),
             "turnaround": round(avg_turn, 2),
-            "cpu_utilization": round(utilization, 2),
         },
     }
 
@@ -79,9 +54,8 @@ def _add_idle_if_needed(timeline, log, current_time, next_time):
     return next_time
 
 
-# ---------------------------------------------------------------------------
+
 # Non-preemptive Algorithms: FCFS, SJF, Priority (NPP)
-# ---------------------------------------------------------------------------
 
 def _run_non_preemptive(processes, select_fn, describe_fn):
     remaining = sorted(processes, key=lambda p: (p["arrival"], _pid_key(p)))
@@ -121,7 +95,7 @@ def fcfs(processes, **kwargs):
         return min(ready, key=lambda p: (p["arrival"], _pid_key(p)))
 
     def describe(chosen, ready, t):
-        return f"{chosen['pid']} arrived earliest among ready processes → dispatch (burst={chosen['burst']})"
+        return f"{chosen['pid']} arrived earliest among ready processes → run (burst={chosen['burst']})"
 
     return _run_non_preemptive(processes, select, describe)
 
@@ -133,7 +107,7 @@ def sjf(processes, **kwargs):
     def describe(chosen, ready, t):
         others = ", ".join(f"{p['pid']}={p['burst']}" for p in ready if p["pid"] != chosen["pid"])
         extra = f" (others ready: {others})" if others else ""
-        return f"{chosen['pid']} has shortest burst ({chosen['burst']}) among ready processes → dispatch{extra}"
+        return f"{chosen['pid']} has shortest burst ({chosen['burst']}) among ready processes → run{extra}"
 
     return _run_non_preemptive(processes, select, describe)
 
@@ -150,14 +124,13 @@ def priority_npp(processes, priority_convention="lower", **kwargs):
 
         return (
             f"{chosen['pid']} has highest priority "
-            f"(value={chosen['priority']}, rule: {rule}) among ready → dispatch"
+            f"(value={chosen['priority']}, rule: {rule}) among ready → run"
         )
 
     return _run_non_preemptive(processes, select, describe)
 
-# ---------------------------------------------------------------------------
+
 # Preemptive Algorithms: SRTF, Priority (PP), Round Robin
-# ---------------------------------------------------------------------------
 
 def srtf(processes, **kwargs):
     procs = {p["pid"]: dict(p, remaining=p["burst"]) for p in processes}
@@ -192,10 +165,10 @@ def srtf(processes, **kwargs):
                 log.append({
                     "time": time,
                     "message": f"{chosen['pid']} (remaining={chosen['remaining']}) < {running_pid} "
-                               f"(remaining={prev_remaining}) → PREEMPT {running_pid}, dispatch {chosen['pid']}",
+                               f"(remaining={prev_remaining}) → PREEMPT {running_pid}, run {chosen['pid']}",
                 })
             else:
-                log.append({"time": time, "message": f"{chosen['pid']} has shortest remaining time ({chosen['remaining']}) → dispatch"})
+                log.append({"time": time, "message": f"{chosen['pid']} has shortest remaining time ({chosen['remaining']}) → run"})
             running_pid = chosen["pid"]
             slice_start = time
 
@@ -253,7 +226,7 @@ def priority_pp(processes, priority_convention="lower", **kwargs):
                 "message": (
                     f"{chosen['pid']} priority={chosen['priority']} is higher than "
                     f"{running_pid} priority={prev_priority} "
-                    f"({rule}) → PREEMPT {running_pid}, dispatch {chosen['pid']}"
+                    f"({rule}) → PREEMPT {running_pid}, run {chosen['pid']}"
                 )
             })
 
@@ -262,7 +235,7 @@ def priority_pp(processes, priority_convention="lower", **kwargs):
                 "time": time,
                 "message": (
                     f"{chosen['pid']} has highest priority "
-                    f"({chosen['priority']}, rule: {rule}) → dispatch"
+                    f"({chosen['priority']}, rule: {rule}) → run"
                 )
             })
 
@@ -340,8 +313,7 @@ def round_robin(processes, quantum=2, **kwargs):
         p["remaining"] -= run_for
         time = end
 
-        # Convention: processes that arrive DURING this slice are enqueued
-        # BEFORE the just-run process is re-queued (if it still has work).
+        # Arrivals take priority over re-queued process.
         while arrival_idx < n and arrivals_sorted[arrival_idx]["arrival"] <= time:
             newly = arrivals_sorted[arrival_idx]["pid"]
             queue.append(newly)
@@ -362,7 +334,7 @@ def round_robin(processes, quantum=2, **kwargs):
 
 
 def _merge_adjacent(timeline):
-    """Merge back-to-back slices of the same pid (cosmetic clean-up for Gantt chart)."""
+    # Merge back-to-back slices of the same pid (clean-up for Gantt chart).
     if not timeline:
         return timeline
     merged = [dict(timeline[0])]

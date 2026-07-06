@@ -1,8 +1,4 @@
-/* =========================================================================
-   CPU Scheduler 98 — app.js
-   All DOM/UI/animation code lives here. All scheduling logic lives in
-   schedulers.py and is executed for real inside the browser via Pyodide.
-   ========================================================================= */
+//   CPU Scheduler 98 — app.js
 
 const ALGO_LABELS = {
   fcfs: "FCFS", sjf: "SJF", srtf: "SRTF",
@@ -14,9 +10,9 @@ let currentResult = null;   // { timeline, log, metrics, averages }
 let currentProcesses = [];
 let pidColors = {};
 
-// ---------------------------------------------------------------------
+
 // 1. Window manager: open/close, drag, minimize, maximize, dynamic taskbar
-// ---------------------------------------------------------------------
+
 const WINDOW_TITLES = {
   "win-input": "Process Input",
   "win-gantt": "Gantt Chart",
@@ -262,9 +258,9 @@ function tickClock() {
 }
 setInterval(tickClock, 1000);
 
-// ---------------------------------------------------------------------
+
 // 2. Process table (editable input UI)
-// ---------------------------------------------------------------------
+
 let rowCounter = 0;
 
 function addProcessRow(arrival = 0, burst = 1, priority = 1) {
@@ -333,12 +329,11 @@ document.querySelectorAll('input[name="algo"]').forEach((r) => {
   });
 });
 
-// ---------------------------------------------------------------------
+
 // 3. Pyodide bootstrap
-// ---------------------------------------------------------------------
 async function initPyodide() {
   pyodide = await loadPyodide();
-  const resp = await fetch("schedulers.py");
+  const resp = await fetch("schedulers.py?v=" + Date.now());
   const src = await resp.text();
   pyodide.FS.writeFile("schedulers.py", src);
   await pyodide.runPythonAsync(`
@@ -379,9 +374,9 @@ function runAllPy(processes, quantum, priorityConvention) {
   return JSON.parse(jsonStr);
 }
 
-// ---------------------------------------------------------------------
+
 // 4. RUN button: execute scheduler, reset animation state
-// ---------------------------------------------------------------------
+
 document.getElementById("btn-run").addEventListener("click", () => {
   const processes = readProcessesFromTable();
   if (processes.length === 0) {
@@ -410,9 +405,9 @@ document.getElementById("btn-run").addEventListener("click", () => {
   ["win-gantt", "win-monitor", "win-log", "win-results"].forEach((id) => openWindow(id));
 });
 
-// ---------------------------------------------------------------------
+
 // 5. Gantt chart drawing + animation (canvas)
-// ---------------------------------------------------------------------
+
 const gantt = {
   timeline: [],
   totalTime: 0,
@@ -517,9 +512,9 @@ document.getElementById("btn-pause").addEventListener("click", () => {
 document.getElementById("btn-step-fwd").addEventListener("click", () => { gantt.playing = false; clearInterval(gantt.timer); stepGantt(1); });
 document.getElementById("btn-step-back").addEventListener("click", () => { gantt.playing = false; clearInterval(gantt.timer); stepGantt(-1); });
 
-// ---------------------------------------------------------------------
+
 // 6. System monitor (ready/running/completed) + decision log, synced to playhead
-// ---------------------------------------------------------------------
+
 function resetMonitorAndLog() {
   document.getElementById("box-ready").innerHTML = "";
   document.getElementById("box-running").innerHTML = "";
@@ -564,9 +559,9 @@ function updateMonitorAndLogAt(time) {
   logBody.scrollTop = logBody.scrollHeight;
 }
 
-// ---------------------------------------------------------------------
+
 // 7. Results table
-// ---------------------------------------------------------------------
+
 function renderResultsTable(result, processes) {
   const tbody = document.getElementById("results-tbody");
   tbody.innerHTML = "";
@@ -588,13 +583,12 @@ function renderResultsTable(result, processes) {
   document.getElementById("results-summary").innerHTML = `
     Avg Waiting Time: <b>${a.waiting}</b> &nbsp;|&nbsp;
     Avg Turnaround Time: <b>${a.turnaround}</b> &nbsp;|&nbsp;
-    CPU Utilization: <b>${a.cpu_utilization}%</b> &nbsp;|&nbsp;
   `;
 }
 
-// ---------------------------------------------------------------------
+
 // 8. Compare Algorithms mode
-// ---------------------------------------------------------------------
+
 document.getElementById("btn-compare-all").addEventListener("click", () => {
   const processes = readProcessesFromTable();
   if (processes.length === 0) {
@@ -638,12 +632,29 @@ function drawCompareChart(allResults) {
 
     ctx.fillStyle = "#0050c0";
     ctx.fillRect(gx + 5, chartBottom - waitH, barW, waitH);
+
     ctx.fillStyle = "#c00000";
     ctx.fillRect(gx + 5 + barW, chartBottom - turnH, barW, turnH);
 
+    // value labels above bars
     ctx.fillStyle = "#000";
-    ctx.font = "10px Tahoma";
+    ctx.font = "bold 10px Tahoma";
     ctx.textAlign = "center";
+
+    ctx.fillText(
+      waits[i],
+      gx + 5 + barW / 2,
+      chartBottom - waitH - 4
+    );
+
+    ctx.fillText(
+      turns[i],
+      gx + 5 + barW + barW / 2,
+      chartBottom - turnH - 4
+    );
+
+    // algorithm label below chart
+    ctx.font = "10px Tahoma";
     ctx.fillText(ALGO_LABELS[name], gx + groupWidth / 2, chartBottom + 14);
   });
 
@@ -658,9 +669,9 @@ function drawCompareChart(allResults) {
   ctx.fillText("Avg Turnaround", chartLeft + 160, chartTop + 4);
 }
 
-// ---------------------------------------------------------------------
+
 // 9. Boot
-// ---------------------------------------------------------------------
+
 window.addEventListener("DOMContentLoaded", () => {
   initWindowManager();
   tickClock();
