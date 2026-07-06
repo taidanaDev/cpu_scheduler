@@ -581,8 +581,8 @@ function renderResultsTable(result, processes) {
   });
   const a = result.averages;
   document.getElementById("results-summary").innerHTML = `
-    Avg Waiting Time: <b>${a.waiting}</b> &nbsp;|&nbsp;
-    Avg Turnaround Time: <b>${a.turnaround}</b> &nbsp;|&nbsp;
+    Avg Waiting Time: <b>${a.waiting} ms</b> &nbsp;|&nbsp;
+    Avg Turnaround Time: <b>${a.turnaround} ms</b>
   `;
 }
 
